@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}</style>
+<title>100語リーディング計測</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Literata:opsz,wght@7..72,400;7..72,500&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one narrow phone column; home = story picker + history, then read → quiz → result as full steps */
+:root{
+  --bg:#F2F4F7; --surface:#FFFFFF; --ink:#172031; --muted:#5D6A7D; --line:#DAE0E8;
+  --accent:#2446E8; --accent-soft:#E6EBFF; --hot:#F2622A; --good:#1C8A5A; --warn:#B7791F; --red:#D61F3A;
+  --f-display:"Bricolage Grotesque","Zen Kaku Gothic New",system-ui,sans-serif;
+  --f-read:"Literata",Georgia,"Times New Roman",serif;
+  --f-ui:"Zen Kaku Gothic New","Hiragino Sans",system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E131B; --surface:#17202C; --ink:#E7ECF3; --muted:#94A1B4; --line:#283343;
+  --accent:#8299FF; --accent-soft:#1F2A4A; --hot:#FF8656; --good:#4FC48E; --warn:#E5B04F; --red:#FF5C70; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E131B; --surface:#17202C; --ink:#E7ECF3; --muted:#94A1B4; --line:#283343;
+  --accent:#8299FF; --accent-soft:#1F2A4A; --hot:#FF8656; --good:#4FC48E; --warn:#E5B04F; --red:#FF5C70; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.6}
+.wrap{max-width:560px;margin:0 auto;padding:20px 16px 120px}
+h1,h2,h3{text-wrap:balance;margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+header.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:6px}
+.brand{font-family:var(--f-display);font-weight:800;font-size:26px;letter-spacing:-.01em}
+.brand small{font-family:var(--f-num);font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.04em;margin-left:6px}
+.lead{color:var(--muted);margin:0 0 20px;font-size:14px}
+.label{font-size:12px;letter-spacing:.08em;color:var(--muted);font-weight:700;margin:28px 0 10px}
+
+.name{display:flex;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.name label{font-size:13px;color:var(--muted);white-space:nowrap}
+.name input{flex:1;min-width:0;border:0;background:transparent;font:inherit;color:var(--ink);padding:4px 0}
+.name input::placeholder{color:var(--muted);opacity:.7}
+
+.stories{display:grid;gap:10px}
+.story{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;text-align:left;
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;transition:border-color .15s,transform .15s}
+.story:hover{border-color:var(--accent)}
+.story:active{transform:scale(.99)}
+.story .glyph{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);font-family:var(--f-display);font-weight:800;font-size:18px}
+.story .t{font-weight:700;min-width:0}
+.story .s{font-size:13px;color:var(--muted);display:block;font-weight:400}
+.story .best{font-family:var(--f-num);font-size:12px;color:var(--muted);text-align:right;line-height:1.3}
+.story .best b{display:block;font-size:16px;color:var(--ink)}
+
+.bands{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:12px}
+.band{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 8px;line-height:1.35}
+.band b{display:block;font-family:var(--f-num);font-size:13px}
+.band.on{border-color:var(--accent);background:var(--accent-soft)}
+@media (max-width:420px){.bands{grid-template-columns:repeat(2,1fr)}}
+
+.hist{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.hist svg{display:block;margin:0 auto}
+.chart-note{font-size:12px;color:var(--muted);margin:4px 0 0}
+.hist table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;font-variant-numeric:tabular-nums}
+.hist td{padding:7px 0;border-top:1px solid var(--line)}
+.hist td.n{font-family:var(--f-num);text-align:right;white-space:nowrap}
+.hist .empty{color:var(--muted);font-size:14px;margin:0}
+.hist-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.link{background:none;border:0;color:var(--muted);font-size:13px;text-decoration:underline;padding:4px}
+.link.danger{color:var(--hot)}
+
+/* reading */
+.step-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+.back{background:none;border:0;color:var(--muted);font-size:14px;padding:6px 0}
+.timer{font-family:var(--f-num);font-size:15px;color:var(--muted);font-variant-numeric:tabular-nums}
+.read-title{font-family:var(--f-display);font-weight:800;font-size:24px;line-height:1.2;margin-bottom:4px}
+.meta{font-size:13px;color:var(--muted);margin-bottom:16px}
+.paper{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 20px;min-height:260px}
+.passage{font-family:var(--f-read);font-size:18px;line-height:1.75;margin:0;transition:filter .25s}
+.paper.locked .passage{filter:blur(7px);user-select:none}
+.cover{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px}
+.cover p{margin:0 0 14px;color:var(--muted);font-size:14px}
+.btn{border:0;border-radius:999px;padding:14px 28px;font-weight:700;font-size:16px;background:var(--accent);color:#fff}
+:root[data-theme="dark"] .btn{color:#0E131B}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn{color:#0E131B}}
+.btn.hot{background:var(--hot)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.dock{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));
+  background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-top:1px solid var(--line)}
+.dock .btn{display:block;width:100%;max-width:528px;margin:0 auto;padding:16px}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+.q h3{font-size:15px;font-weight:700;margin-bottom:10px;font-family:var(--f-read);font-weight:500;font-size:17px}
+.q .qn{font-family:var(--f-num);font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+.opts{display:grid;gap:8px}
+.opt{text-align:left;border:1px solid var(--line);background:transparent;border-radius:10px;padding:11px 12px;font-family:var(--f-read);font-size:15px;line-height:1.45}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.opt.right{border-color:var(--good);background:color-mix(in srgb,var(--good) 14%,transparent)}
+.opt.wrong{border-color:var(--hot);background:color-mix(in srgb,var(--hot) 12%,transparent)}
+.opt:disabled{cursor:default;color:var(--ink)}
+.note{font-size:13px;color:var(--muted);margin:0 0 14px}
+
+/* result */
+.score{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px 20px;text-align:center}
+.score .who{font-size:13px;color:var(--muted)}
+.big{font-family:var(--f-display);font-weight:800;font-size:76px;line-height:1;letter-spacing:-.03em;margin:8px 0 0;color:var(--accent);font-variant-numeric:tabular-nums}
+.big-unit{font-family:var(--f-num);font-size:13px;letter-spacing:.12em;color:var(--muted)}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:18px}
+.fact{border-top:1px solid var(--line);padding-top:10px}
+.fact b{display:block;font-family:var(--f-num);font-size:18px;font-variant-numeric:tabular-nums}
+.fact span{font-size:12px;color:var(--muted)}
+.verdict{margin:18px 0 0;padding:12px 14px;border-radius:12px;background:var(--accent-soft);text-align:left;font-size:14px}
+.verdict.caution{background:color-mix(in srgb,var(--warn) 16%,transparent)}
+.row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.row .btn{flex:1 1 140px;padding:13px 16px;font-size:15px}
+.copybox{margin-top:12px;font-size:13px;background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:10px 12px;white-space:pre-wrap;user-select:all;font-family:var(--f-ui)}
+.toast{font-size:13px;color:var(--good);min-height:1.4em;margin-top:6px;text-align:center}
+/* pace mode */
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:10px}
+.mode{border:0;background:transparent;border-radius:9px;padding:9px 6px;font-size:14px;font-weight:700;color:var(--muted)}
+.mode[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.pacectl{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-family:var(--f-num);font-size:14px}
+.chip small{font-family:var(--f-ui);font-size:11px;color:var(--muted);margin-left:2px}
+.chip[aria-pressed="true"]{border-color:var(--red);color:var(--red);background:color-mix(in srgb,var(--red) 10%,transparent)}
+.sw{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.sw input{width:18px;height:18px;accent-color:var(--red)}
+.w{border-radius:4px;transition:color .12s,background-color .12s,box-shadow .12s}
+.passage.pacing .w{color:var(--muted)}
+.passage.pacing .w.read{color:var(--ink)}
+.passage.pacing .w.now{color:var(--red);background:color-mix(in srgb,var(--red) 14%,transparent);box-shadow:0 0 0 2px color-mix(in srgb,var(--red) 14%,transparent)}
+.bar{height:4px;background:var(--line);border-radius:4px;margin-top:10px;overflow:hidden}
+.bar span{display:block;height:100%;width:0;background:var(--red)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+
+<section id="home">
+  <header class="top"><h1 class="brand">100語リーディング計測<small>WPM</small></h1></header>
+  <p class="lead">100語の英文を読んで、1分あたりに読めた語数（WPM）を測ります。読み終わったら3問のクイズで理解度も確認します。</p>
+
+  <div class="name"><label for="nm">名前</label><input id="nm" placeholder="結果画面に表示されます（任意）" maxlength="20" autocomplete="off"></div>
+
+  <p class="label">英文を選ぶ</p>
+  <div class="stories" id="stories"></div>
+
+  <p class="label">WPMの目安</p>
+  <div class="bands" id="bands"></div>
+
+  <p class="label">自分の記録</p>
+  <div class="hist" id="hist"></div>
+</section>
+
+<section id="read" hidden>
+  <div class="step-head"><button class="back" id="readBack">← 英文を選び直す</button><span class="timer" id="timer">0.0秒</span></div>
+  <h2 class="read-title" id="rTitle"></h2>
+  <div class="modes" id="modes">
+    <button class="mode" data-mode="self" aria-pressed="true">自分のペースで計測</button>
+    <button class="mode" data-mode="pace" aria-pressed="false">音声と赤い文字で読む</button>
+  </div>
+  <div class="pacectl" id="paceCtl" hidden>
+    <div class="chips" id="chips"></div>
+    <label class="sw"><input type="checkbox" id="sound" checked> 音声を流す</label>
+  </div>
+  <p class="meta" id="rMeta"></p>
+  <div class="paper locked" id="paper">
+    <p class="passage" id="passage"></p>
+    <div class="cover" id="cover"><div><p id="coverMsg"></p><button class="btn" id="startBtn">スタート</button></div></div>
+  </div>
+  <div class="bar" id="bar" hidden><span id="barFill"></span></div>
+</section>
+
+<section id="quiz" hidden>
+  <div class="step-head"><span class="timer">理解度チェック</span><span class="timer" id="qTime"></span></div>
+  <h2 class="read-title">内容を覚えていますか？</h2>
+  <p class="note">英文はもう見られません。読んだ内容だけで答えてください。</p>
+  <div id="qs"></div>
+</section>
+
+<section id="result" hidden>
+  <div class="score">
+    <div class="who" id="who"></div>
+    <div class="big" id="bigWpm">0</div>
+    <div class="big-unit">WORDS PER MINUTE</div>
+    <div class="facts">
+      <div class="fact"><b id="fTime">0秒</b><span>読んだ時間</span></div>
+      <div class="fact"><b id="fQuiz">0/3</b><span>理解度</span></div>
+      <div class="fact"><b id="fBest">—</b><span>この英文の自己ベスト</span></div>
+    </div>
+    <div class="verdict" id="verdict"></div>
+  </div>
+  <div id="review"></div>
+  <p class="label">コーチに送る用（コピーしてLINEに貼る）</p>
+  <div class="copybox" id="copyText"></div>
+  <div class="row">
+    <button class="btn ghost" id="copyBtn">記録をコピー</button>
+    <button class="btn" id="homeBtn">ほかの英文を読む</button>
+  </div>
+  <div class="toast" id="toast" aria-live="polite"></div>
+</section>
+
+</div>
+<div class="dock" id="dock" hidden><button class="btn hot" id="stopBtn">読み終わった</button></div>
+
+<script src="timings.js"></script>
+<script>
+const STORIES=[
+ {id:"godzilla",g:"G",title:"Godzilla Works from Home",ja:"ゴジラのリモートワーク",
+  text:`Godzilla started working from home last spring. At first, it was a disaster. His tail knocked over the router every morning, and everyone on Zoom muted his roar. His manager, a nervous man named Mr. Tanaka, kept asking him to turn on his camera. "I can't," Godzilla typed. "The screen only shows my left eye." Slowly, he adapted. He bought a stadium-sized desk and learned to type with one claw. He even started enjoying lunch breaks at the beach. Now, his team says he is their most productive member. He never misses deadlines, though he still destroys the occasional printer.`,
+  q:[["Why couldn't Godzilla turn on his camera?",["The screen only showed his left eye.","His tail had broken the camera.","His manager told him not to."]],
+     ["What did Godzilla do to adapt?",["He bought a stadium-sized desk.","He moved his office to the beach.","He hired an assistant to type for him."]],
+     ["What does his team say about him now?",["He is their most productive member.","He is too loud for meetings.","He often misses deadlines."]]]},
+ {id:"penguin",g:"P",title:"The Penguin Flight Attendant",ja:"CAになったペンギン",
+  text:`Pippa dreamed of flying, but penguins cannot fly. So she applied to be a flight attendant instead. At the interview, the panel looked worried. "Can you reach the overhead bins?" one asked. "No," she admitted, "but I can carry a ladder." They laughed and hired her. On her first flight, she served fish to every passenger by mistake. The complaints were terrible. However, she learned quickly. She memorized every menu and practiced safety demonstrations in front of a mirror. Today, she is the most popular crew member on the Tokyo route. Passengers even request her section when they book tickets.`,
+  q:[["What was the interview panel worried about?",["Whether she could reach the overhead bins.","Whether she could speak English.","Whether she was afraid of flying."]],
+     ["What went wrong on her first flight?",["She served fish to every passenger.","She dropped her ladder in the aisle.","She forgot the safety demonstration."]],
+     ["How do passengers feel about her today?",["They request her section when booking.","They complain about the menu.","They ask her to fly the plane."]]]},
+ {id:"ninja",g:"N",title:"The Ninja Pizza Driver",ja:"ピザを配達する忍者",
+  text:`Kenji was the last ninja in Osaka, but nobody needed ninjas anymore. To pay his rent, he started delivering pizza. He was fast. He jumped across rooftops and arrived before customers finished ordering. His boss was delighted until people began calling the shop, confused. "The pizza is here," they said, "but we never saw the driver." Kenji was simply too quiet. Customers thought their food was appearing by magic. So his boss gave him a small bell to wear. Now everyone hears him coming. Kenji says the bell is embarrassing, but his tips have tripled since customers can thank him.`,
+  q:[["Why did Kenji start delivering pizza?",["To pay his rent.","Because he loved pizza.","Because his boss was a ninja."]],
+     ["Why were customers confused?",["They never saw the driver.","The pizza arrived cold.","The pizza went to the wrong address."]],
+     ["What happened after Kenji started wearing a bell?",["His tips tripled.","He became slower.","He quit the job."]]]},
+ {id:"robot",g:"R",title:"Max the Robot Barista",ja:"ロボットのバリスタ",
+  text:`The new barista at the corner café was a robot called Max. On his first day, he made perfect coffee, but he could not understand small talk. When a customer said, "Crazy weather today," Max replied, "Weather is not crazy. It is forty percent cloudy." When another said, "Make it quick," he ran around the shop in circles. The owner sat him down and explained that humans often say things they do not mean literally. Max studied jokes nightly for a month. Last week, he told his first joke. Nobody laughed, but Max laughed so hard he needed a reboot.`,
+  q:[["What was Max's problem at first?",["He could not understand small talk.","His coffee tasted terrible.","He was too slow to serve customers."]],
+     ["What did Max do when a customer said \"Make it quick\"?",["He ran around the shop in circles.","He made the coffee twice as fast.","He refused to make the coffee."]],
+     ["What happened when Max told his first joke?",["Max laughed so hard he needed a reboot.","Every customer laughed loudly.","The owner asked him to stop."]]]},
+ {id:"cat",g:"M",title:"Mochi Runs the Hotel",ja:"ホテルを継いだ猫",
+  text:`Mochi the cat inherited a small hotel from her owner. The staff expected her to sleep all day, but Mochi took the job seriously. Every morning, she inspected every room and sat on any bed that was not made properly. She greeted guests at the front door and ignored the ones who were rude. Online reviews began to mention her. "Excellent service," wrote one guest, "although the manager stared at me during breakfast." Within a year, the hotel was fully booked every weekend. Visitors traveled from abroad just to meet her. Mochi, of course, still refuses to answer any emails.`,
+  q:[["What did Mochi do with beds that were not made properly?",["She sat on them.","She slept in them all day.","She reported them to the staff."]],
+     ["What did one online review say?",["The manager stared at the guest during breakfast.","The breakfast was cold.","The cat was rude to everyone."]],
+     ["What happened within a year?",["The hotel was fully booked every weekend.","Mochi sold the hotel.","The hotel hired a dog as manager."]]]}
+];
+const BANDS=[
+ {min:0,max:99,name:"じっくり",d:"〜99 WPM"},
+ {min:100,max:149,name:"標準",d:"100〜149"},
+ {min:150,max:199,name:"TOEIC目標",d:"150〜199"},
+ {min:200,max:9999,name:"ネイティブ並み",d:"200〜"}];
+const MAX_WPM=400; // 100語を15秒未満＝押し間違いとみなす
+const KEY="wpm100.history.v1", NKEY="wpm100.name";
+const $=s=>document.querySelector(s);
+const store={
+  get(){try{return (JSON.parse(localStorage.getItem(KEY))||[]).filter(r=>r&&r.wpm>0&&r.wpm<=MAX_WPM)}catch(e){return []}},
+  set(v){try{localStorage.setItem(KEY,JSON.stringify(v))}catch(e){}}
+};
+let cur=null,t0=0,tick=null,elapsed=0,answers=[],order=[];
+
+function show(id){["home","read","quiz","result"].forEach(s=>$("#"+s).hidden=s!==id);$("#dock").hidden=true;window.scrollTo(0,0)}
+function bandOf(w){return BANDS.find(b=>w>=b.min&&w<=b.max)}
+function fmtDate(ts){const d=new Date(ts);return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`}
+function bestFor(id){const h=store.get().filter(r=>r.id===id&&r.score>=2&&r.m!=="p");return h.length?Math.max(...h.map(r=>r.wpm)):null}
+function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+function renderHome(){
+  $("#stories").innerHTML=STORIES.map(s=>{const b=bestFor(s.id);return `<button class="story" data-id="${s.id}">
+   <span class="glyph" aria-hidden="true">${s.g}</span>
+   <span class="t">${esc(s.title)}<span class="s">${s.ja} ・ 100語</span></span>
+   <span class="best">${b?`<b>${b}</b>ベスト`:"未挑戦"}</span></button>`}).join("");
+  document.querySelectorAll(".story").forEach(el=>el.onclick=()=>openStory(el.dataset.id));
+  const h=store.get(), last=h.length?h[h.length-1].wpm:null, lb=last!=null?bandOf(last):null;
+  $("#bands").innerHTML=BANDS.map(b=>`<div class="band${lb===b?" on":""}"><b>${b.d}</b>${b.name}</div>`).join("");
+  renderHist(h);
+}
+function renderHist(h){
+  const el=$("#hist");
+  if(!h.length){el.innerHTML=`<p class="empty">まだ記録はありません。英文を1本読むと、ここにWPMの推移が表示されます。<br>記録はこの端末のブラウザにだけ保存されます。</p>`;return}
+  let chart;
+  if(h.length<2){chart=`<p class="empty">グラフは2回目の記録から表示されます。</p>`}
+  else{
+  const pts=h.slice(-12), W=Math.max(240,Math.min(560,document.documentElement.clientWidth)-32-34), H=170, P={l:34,r:14,t:22,b:12};
+  const max=Math.max(220,Math.ceil(Math.max(...pts.map(p=>p.wpm))/50)*50);
+  const min=Math.max(0,Math.min(100,Math.floor((Math.min(...pts.map(p=>p.wpm))-20)/50)*50));
+  const x=i=>P.l+i*(W-P.l-P.r)/(pts.length-1), y=v=>P.t+(1-(v-min)/(max-min))*(H-P.t-P.b);
+  const ticks=[0,50,100,150,200,250,300,350,400].filter(v=>v>=min&&v<=max);
+  const line=pts.map((p,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(p.wpm).toFixed(1)}`).join("");
+  const area=`${line}L${x(pts.length-1).toFixed(1)},${y(min)}L${x(0).toFixed(1)},${y(min)}Z`;
+  const lastI=pts.length-1, ly=y(pts[lastI].wpm);
+  chart=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="直近${pts.length}回のWPMの推移" style="width:100%;height:auto;max-width:${W}px">
+   ${ticks.map(v=>`<line x1="${P.l}" x2="${W-P.r}" y1="${y(v)}" y2="${y(v)}" stroke="${v===150?"var(--accent)":"var(--line)"}" stroke-opacity="${v===150?.45:1}" stroke-width="1" ${v===150?'stroke-dasharray="4 4"':''}/><text x="${P.l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="IBM Plex Mono,monospace">${v}</text>`).join("")}
+   <path d="${area}" fill="var(--accent)" opacity=".10"/>
+   <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+   ${pts.map((p,i)=>`<circle cx="${x(i)}" cy="${y(p.wpm)}" r="${i===lastI?4.5:3}" fill="${i===lastI?"var(--accent)":"var(--surface)"}" stroke="var(--accent)" stroke-width="1.5"/>`).join("")}
+   <text x="${x(lastI)-8}" y="${ly<P.t+14?ly+18:ly-10}" text-anchor="end" font-size="12" font-weight="600" fill="var(--ink)" font-family="IBM Plex Mono,monospace">${pts[lastI].wpm}</text>
+  </svg><p class="chart-note">点線＝150 WPM（TOEICを時間内に読み切る目安）</p>`}
+  el.innerHTML=chart+`
+<table><tbody>${h.slice(-6).reverse().map(r=>{const s=STORIES.find(x=>x.id===r.id);return `<tr><td>${fmtDate(r.ts)}　${s?s.ja:r.id}</td><td class="n">${r.m==="p"?"♪":""}${r.wpm} WPM ・ ${r.score}/3</td></tr>`}).join("")}</tbody></table>
+  <div class="hist-actions" id="ha"><button class="link danger" id="clr">記録を消す</button></div>`;
+  $("#clr").onclick=()=>{$("#ha").innerHTML=`<span style="font-size:13px">この端末の記録をすべて消しますか？</span><button class="link" id="no">やめる</button><button class="link danger" id="yes">消す</button>`;
+    $("#no").onclick=()=>renderHist(store.get()); $("#yes").onclick=()=>{store.set([]);renderHome()}};
+}
+
+const SPEEDS=[{w:130,n:"ゆっくり"},{w:150,n:"TOEIC"},{w:180,n:"速め"},{w:210,n:"ネイティブ"}];
+let mode="self",pace=150,audio=null,raf=null,playing=false,lastIdx=-1;
+function setMode(m){mode=m;
+  document.querySelectorAll(".mode").forEach(b=>b.setAttribute("aria-pressed",b.dataset.mode===m));
+  $("#paceCtl").hidden=m!=="pace"; resetRead();}
+function renderChips(){
+  $("#chips").innerHTML=SPEEDS.map(s=>`<button class="chip" data-w="${s.w}" aria-pressed="${s.w===pace}">${s.w}<small>WPM</small></button>`).join("");
+  document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{pace=+c.dataset.w;renderChips();resetRead()});
+}
+function resetRead(){
+  stopAudio(); clearInterval(tick);
+  const toks=cur.text.split(/\s+/);
+  $("#passage").innerHTML=toks.map((w,i)=>`<span class="w" data-i="${i}">${esc(w)}</span>`).join(" ");
+  $("#passage").classList.remove("pacing");
+  $("#paper").classList.add("locked"); $("#cover").hidden=false; $("#dock").hidden=true; $("#bar").hidden=true;
+  $("#timer").textContent=mode==="self"?"0.0秒":`${pace} WPM`;
+  $("#rMeta").textContent=mode==="self"?"100語 ・ 読み終わったらすぐ「読み終わった」を押す":`100語 ・ ${pace} WPM（約${Math.round(100/pace*60)}秒）`;
+  $("#coverMsg").innerHTML=mode==="self"
+    ?"スタートを押すと英文が表示され、時間の計測が始まります。<br>声に出さず、内容を理解しながら読みましょう。"
+    :`スタートを押すと${$("#sound").checked?"音声が流れ、":""}読んでいる位置が<b style="color:var(--red)">赤い文字</b>で進みます。<br>赤い文字に遅れないように目で追いましょう。`;
+}
+function openStory(id){
+  cur=STORIES.find(s=>s.id===id);
+  $("#rTitle").textContent=cur.title;
+  audio=new Audio(`audio/${cur.id}.mp4`); audio.preload="auto";
+  audio.addEventListener("ended",paceEnded);
+  show("read"); renderChips(); resetRead();
+}
+function start(){
+  $("#paper").classList.remove("locked"); $("#cover").hidden=true;
+  if(mode==="self"){
+    $("#dock").hidden=false; setDock("読み終わった","hot",stop);
+    t0=performance.now(); clearInterval(tick);
+    tick=setInterval(()=>{$("#timer").textContent=((performance.now()-t0)/1000).toFixed(1)+"秒"},100);
+  }else startPace();
+}
+function startPace(){
+  const tm=window.TIMINGS&&TIMINGS[cur.id];
+  const natural=tm?100/tm.dur*60:165;
+  audio.playbackRate=pace/natural;
+  try{audio.preservesPitch=true;audio.webkitPreservesPitch=true}catch(e){}
+  audio.muted=!$("#sound").checked; audio.currentTime=0;
+  $("#passage").classList.add("pacing"); $("#bar").hidden=false; lastIdx=-1;
+  $("#dock").hidden=false; setDock("一時停止","ghost",togglePace);
+  const p=audio.play(); playing=true;
+  if(p&&p.catch)p.catch(()=>{playing=false;setDock("再生する","",togglePace)});
+  loop();
+}
+function loop(){
+  cancelAnimationFrame(raf);
+  const tm=TIMINGS[cur.id], ct=audio.currentTime, t=tm.t;
+  let i=lastIdx<0?0:lastIdx; while(i<t.length-1&&t[i+1][0]<=ct)i++; if(ct<t[0][0])i=-1;
+  if(i!==lastIdx){
+    const ws=$("#passage").children;
+    for(let k=Math.max(0,Math.min(i,lastIdx));k<ws.length;k++){ws[k].classList.toggle("read",k<i);ws[k].classList.toggle("now",k===i);if(k>Math.max(i,lastIdx))break}
+    lastIdx=i;
+  }
+  $("#barFill").style.width=Math.min(100,ct/tm.dur*100)+"%";
+  if(!audio.paused&&!audio.ended)raf=requestAnimationFrame(loop);
+}
+function togglePace(){
+  if(audio.paused){audio.play();playing=true;setDock("一時停止","ghost",togglePace);loop()}
+  else{audio.pause();playing=false;setDock("続きから再生","",togglePace)}
+}
+function paceEnded(){
+  playing=false; cancelAnimationFrame(raf);
+  [...$("#passage").children].forEach(w=>{w.classList.remove("now");w.classList.add("read")});
+  $("#barFill").style.width="100%";
+  setDock("理解度クイズへ","",()=>{elapsed=100/pace*60;quiz()});
+}
+function stopAudio(){if(audio){audio.pause();playing=false}cancelAnimationFrame(raf)}
+function setDock(label,cls,fn){const b=$("#stopBtn");b.textContent=label;b.className="btn"+(cls?" "+cls:"");b.onclick=fn}
+function stop(){elapsed=(performance.now()-t0)/1000; clearInterval(tick); quiz()}
+function quiz(){
+  stopAudio();
+  answers=[null,null,null];
+  order=cur.q.map(q=>shuffle(q[1].map((_,i)=>i)));
+  $("#qTime").textContent=mode==="self"?elapsed.toFixed(1)+"秒で読了":`${pace} WPMで読了`;
+  $("#qs").innerHTML=cur.q.map((q,qi)=>`<div class="q"><span class="qn">Q${qi+1}</span><h3>${esc(q[0])}</h3><div class="opts">${order[qi].map(oi=>`<button class="opt" data-q="${qi}" data-o="${oi}" aria-pressed="false">${esc(q[1][oi])}</button>`).join("")}</div></div>`).join("");
+  show("quiz");
+  document.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{const qi=+b.dataset.q;answers[qi]=+b.dataset.o;
+    document.querySelectorAll(`.opt[data-q="${qi}"]`).forEach(o=>o.setAttribute("aria-pressed",o===b));
+    if(answers.every(a=>a!==null)){$("#dock").hidden=false;setDock("採点する","",finish)}});
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function finish(){
+  const isPace=mode==="pace";
+  const wpm=isPace?pace:Math.round(100/elapsed*60), score=answers.filter(a=>a===0).length;
+  const prevBest=bestFor(cur.id);
+  const invalid=!isPace&&wpm>MAX_WPM;
+  if(!invalid){const h=store.get(); h.push({id:cur.id,wpm,sec:+elapsed.toFixed(1),score,ts:Date.now(),m:isPace?"p":"s"}); store.set(h);}
+  const name=$("#nm").value.trim();
+  $("#who").textContent=(name?name+" ・ ":"")+cur.ja+" ・ "+(isPace?"音声ペース ・ ":"")+fmtDate(Date.now());
+  $("#bigWpm").textContent=invalid?"—":wpm; $("#fTime").textContent=elapsed.toFixed(1)+"秒"; $("#fQuiz").textContent=score+"/3";
+  const nb=bestFor(cur.id); $("#fBest").textContent=nb!=null?nb:"—";
+  const v=$("#verdict"), b=bandOf(wpm);
+  if(invalid){v.className="verdict caution";v.innerHTML=`<b>${elapsed.toFixed(1)}秒で読み終わったことになっています。</b><br>100語をこの速さで読むのは難しいので、ボタンの押し間違いとして記録には残しません。もう一度スタートからやり直してください。`}
+  else if(isPace){
+    const i=SPEEDS.findIndex(s=>s.w===pace);
+    if(score>=2){v.className="verdict";v.innerHTML=`<b>${pace} WPMの速さで内容を理解できました。</b><br>`+(i<SPEEDS.length-1?`次は${SPEEDS[i+1].w} WPMに上げてみましょう。そのあと「自分のペースで計測」で、音声なしでも同じ速さで読めるか確かめます。`:"いちばん速い210 WPMで理解できています。音声なしでも同じ速さで読めるか、「自分のペースで計測」で試してみましょう。")}
+    else{v.className="verdict caution";v.innerHTML=`<b>${pace} WPMは、今はまだ少し速いようです。</b><br>`+(i>0?`${SPEEDS[i-1].w} WPMに下げて、赤い文字についていきながら意味が取れるか試してみましょう。`:"音声を聞きながら2〜3回読み、内容がわかってからもう一度挑戦しましょう。")}
+  }else if(score<2){v.className="verdict caution";v.innerHTML=`<b>理解度が${score}/3なので、このWPMは参考記録です。</b><br>速く読めても内容が残っていなければ点数にはつながりません。少しスピードを落として、意味を取りながら読み直してみましょう。（自己ベストには数えません）`}
+  else{v.className="verdict";
+    const pb=prevBest!=null&&wpm>prevBest?`<br>自己ベストを ${wpm-prevBest} WPM 更新しました。`:"";
+    const msg={"じっくり":"まずは返り読みをしないことを意識しましょう。英文の頭から順に意味を取るのがコツです。「音声と赤い文字で読む」の130 WPMで、前から順に読む練習もできます。","標準":"TOEICで時間内に読み切る目安は150 WPMです。「音声と赤い文字で読む」の150 WPMで、その速さを体で覚えましょう。","TOEIC目標":"TOEICのPart7を時間内に読み切れる速さです。初めて読む英文でも、この速さを出せるか試してみましょう。","ネイティブ並み":"かなり速く読めています。この速さで理解度3/3が続けば十分です。"}[b.name];
+    v.innerHTML=`<b>${b.name}（${b.d}）</b><br>${msg}${pb}`}
+  $("#review").innerHTML=`<p class="label">答え合わせ</p>`+cur.q.map((q,qi)=>`<div class="q"><span class="qn">Q${qi+1}</span><h3>${esc(q[0])}</h3><div class="opts">${order[qi].map(oi=>`<button class="opt ${oi===0?"right":(answers[qi]===oi?"wrong":"")}" disabled>${oi===0?"○ ":(answers[qi]===oi?"× ":"")}${esc(q[1][oi])}</button>`).join("")}</div></div>`).join("");
+  $("#copyText").textContent=`【WPM記録】${name||""}\n英文：${cur.ja}（100語）\n${isPace?`読み方：音声ペース ${pace} WPM`:`時間：${elapsed.toFixed(1)}秒\nWPM：${wpm}`}\n理解度：${score}/3`;
+  $("#toast").textContent="";
+  show("result");
+}
+document.querySelectorAll(".mode").forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+$("#sound").onchange=()=>{if(audio)audio.muted=!$("#sound").checked; if(!playing)resetRead()};
+$("#startBtn").onclick=start;
+$("#readBack").onclick=()=>{stopAudio();clearInterval(tick);renderHome();show("home")};
+$("#homeBtn").onclick=()=>{renderHome();show("home")};
+$("#copyBtn").onclick=()=>{const t=$("#copyText").textContent;
+  navigator.clipboard.writeText(t).then(()=>$("#toast").textContent="コピーしました。LINEに貼り付けて送ってください。")
+  .catch(()=>{const r=document.createRange();r.selectNodeContents($("#copyText"));const s=getSelection();s.removeAllRanges();s.addRange(r);$("#toast").textContent="文字を選択しました。長押しでコピーしてください。"})};
+try{$("#nm").value=localStorage.getItem(NKEY)||""}catch(e){}
+$("#nm").addEventListener("input",e=>{try{localStorage.setItem(NKEY,e.target.value)}catch(_){}});
+renderHome();
+let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{if(!$("#home").hidden)renderHist(store.get())},150)});
+</script>
+
+</body>
+</html>
